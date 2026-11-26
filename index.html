@@ -383,7 +383,7 @@
         <div id="fbList"></div>
       </div>
 
-      <div class="ver">Версия 1.0.3</div>
+      <div class="ver">Версия 1.0.4</div>
     </section>
   </div>
 
@@ -1213,9 +1213,17 @@
   function makeSupabaseDb(client) {
     const loaders = {};
     const reload = (table) => (loaders[table] || []).forEach(fn => fn());
+    // перед каждой записью убеждаемся, что вход есть; если нет — входим анонимно
+    const ready = async () => {
+      try {
+        const r = await client.auth.getSession();
+        if (!r.data.session) await client.auth.signInAnonymously();
+      } catch (e) {}
+    };
     function collection(table) {
       return {
         async add(data) {
+          await ready();
           const { data: row, error } = await client.from(table).insert({ data }).select("id").single();
           if (error) throw error;
           reload(table);
@@ -1225,6 +1233,7 @@
           return {
             id,
             async update(patch) {
+              await ready();
               const cur = await client.from(table).select("data").eq("id", id).single();
               if (cur.error) throw cur.error;
               const { error } = await client.from(table).update({ data: { ...cur.data.data, ...patch } }).eq("id", id);
@@ -1232,6 +1241,7 @@
               reload(table);
             },
             async delete() {
+              await ready();
               const { error } = await client.from(table).delete().eq("id", id);
               if (error) throw error;
               reload(table);

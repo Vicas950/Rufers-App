@@ -273,7 +273,7 @@
     await fdb.collection(col).doc(id).delete();
   }
   async function log(text) {
-    const entry = { text, at: Date.now() };
+    const entry = { text, who: "Админ", at: Date.now() };
     if (demo) { logs.unshift({ id: "l" + Date.now(), ...entry }); renderLog(); counts(); return; }
     await fdb.collection("log").add(entry);
   }
@@ -399,7 +399,7 @@
   function renderLog() {
     const list = logs.slice().sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 200);
     $("v-log").innerHTML = '<div class="card log-card">' + (list.length
-      ? list.map(l => '<div class="log-item"><time>' + esc(fmt(l.at)) + "</time><div>" + esc(l.text) + "</div></div>").join("")
+      ? list.map(l => '<div class="log-item"><time>' + esc(fmt(l.at)) + "</time><div>" + (l.who ? "<b>" + esc(l.who) + ":</b> " : "") + esc(l.text) + "</div></div>").join("")
       : '<div class="empty" style="padding:20px">Действий пока нет</div>') + "</div>";
   }
 
