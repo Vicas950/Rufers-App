@@ -951,6 +951,7 @@
         const has = list.some(g => g.id === myId);
         const next = has ? list.filter(g => g.id !== myId) : list.concat([{ id: myId, name: myName() }]);
         await db.collection("roofs").doc(id).update({ goers: next });
+        logAct((has ? "Отказался от руфа «" : "Пойдёт на руф «") + titleOf(bOf(r.buildingId)) + "»");
         return;
       }
 
@@ -976,10 +977,12 @@
         if (editBId) {
           const { createdAt, ...upd } = data;
           await db.collection("buildings").doc(editBId).update(upd);
+          logAct("Изменил здание «" + (upd.name || upd.address) + "»");
           closeSheet();
           toast("Здание обновлено");
         } else {
           const ref = await db.collection("buildings").add(data);
+          logAct("Добавил здание «" + (data.name || data.address) + "»");
           closeSheet();
           if (simpleMode) {
             toast("Здание добавлено");
@@ -998,11 +1001,13 @@
           const er = roofs.find(x => x.id === editRoofId);
           if (er && !mine(er)) { closeSheet(); return toast("Можно менять только свои руфы"); }
           await db.collection("roofs").doc(editRoofId).update(data);
+          logAct("Изменил руф «" + titleOf(bOf(roofBid)) + "»: " + (date ? "дата " + date : "без даты"));
         } else {
           data.createdAt = Date.now();
           data.ownerId = myId;
           data.goers = [];
           await db.collection("roofs").add(data);
+          logAct("Добавил руф «" + titleOf(bOf(roofBid)) + "»" + (date ? " на " + date : " в идеи"));
         }
         closeSheet();
         setTab(date ? "s-home" : "s-ideas");
@@ -1021,6 +1026,7 @@
           reportPhotos: dPhotos.slice(),
           reportNote: $("dNote").value.trim()
         });
+        logAct("Отметил руф «" + titleOf(bOf(r.buildingId)) + "» как сделанный (" + date + ")");
         closeSheet();
         setTab("s-buildings");
         setBSeg("done");
@@ -1032,6 +1038,7 @@
         const rd = roofs.find(x => x.id === id);
         if (rd && !mine(rd)) return toast("Можно удалять только свои руфы");
         if (!armDelete(el)) return;
+        logAct("Удалил руф «" + titleOf(bOf(rd && rd.buildingId)) + "»");
         await db.collection("roofs").doc(id).delete();
         return;
       }
@@ -1042,6 +1049,7 @@
         for (const r of roofs.filter(x => x.buildingId === id)) {
           await db.collection("roofs").doc(r.id).delete();
         }
+        logAct("Удалил здание «" + titleOf(bOf(id)) + "» и его руфы");
         await db.collection("buildings").doc(id).delete();
         toast("Здание и его руфы удалены");
         return;
@@ -1051,6 +1059,7 @@
         const text = $("fbText").value.trim();
         if (!text) { $("fbText").focus(); return toast("Напиши текст"); }
         await db.collection("feedback").add({ type: fbType, author: myName(), text, createdAt: Date.now(), authorId: myId });
+        logAct("Написал в обратную связь (" + (FB_TYPES[fbType] || fbType) + ")");
         $("fbText").value = "";
         toast("Спасибо, отправлено");
         return;
@@ -1060,6 +1069,7 @@
         const fbi = feedback.find(x => x.id === id);
         if (fbi && !mine(fbi)) return toast("Можно удалять только свои сообщения");
         if (!armDelete(el)) return;
+        logAct("Удалил отзыв от «" + ((fbi && fbi.author) || "Аноним") + "»");
         await db.collection("feedback").doc(id).delete();
         return;
       }
@@ -1181,6 +1191,12 @@
       };
     }
     return { collection };
+  }
+
+  // ---------- журнал: каждое действие в приложении ----------
+  function logAct(text) {
+    if (!db) return;
+    try { db.collection("log").add({ text, who: myName(), at: Date.now() }).catch(function () {}); } catch (e) {}
   }
 
   // ---------- Supabase: тот же интерфейс, что у Firestore ----------
