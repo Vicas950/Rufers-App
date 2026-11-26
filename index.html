@@ -383,7 +383,7 @@
         <div id="fbList"></div>
       </div>
 
-      <div class="ver">Версия 1.0.6</div>
+      <div class="ver">Версия 1.0.7</div>
     </section>
   </div>
 
@@ -1201,11 +1201,18 @@
   // ---------- журнал: каждое действие в приложении ----------
   let authErr = "";
   function logAct(text) {
-    if (!db) { toast("Журнал: база не подключена"); return; }
+    const who = myName();
     try {
-      db.collection("log").add({ text, who: myName(), at: Date.now() }).catch(function (err) {
-        toast("Журнал: " + (err.message || err.code || "ошибка записи") + (authErr ? " | Вход: " + authErr : ""));
-      });
+      // запись идёт через функцию в базе, поэтому не зависит от входа на телефоне
+      if (sbClient) {
+        sbClient.rpc("write_log", { p_text: text, p_who: who }).then(function (r) {
+          if (r.error) toast("Журнал: " + r.error.message);
+        });
+      } else if (db) {
+        db.collection("log").add({ text, who, at: Date.now() }).catch(function (err) {
+          toast("Журнал: " + (err.message || err.code || "ошибка записи"));
+        });
+      }
     } catch (e) { toast("Журнал: " + (e.message || "ошибка")); }
   }
 
