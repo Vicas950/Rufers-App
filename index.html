@@ -383,7 +383,7 @@
         <div id="fbList"></div>
       </div>
 
-      <div class="ver">Версия 1.0.4</div>
+      <div class="ver">Версия 1.0.5</div>
     </section>
   </div>
 
@@ -1216,8 +1216,12 @@
     // перед каждой записью убеждаемся, что вход есть; если нет — входим анонимно
     const ready = async () => {
       try {
-        const r = await client.auth.getSession();
-        if (!r.data.session) await client.auth.signInAnonymously();
+        const u = await client.auth.getUser();
+        if (!u.error && u.data.user) return;
+        const rf = await client.auth.refreshSession();
+        if (!rf.error && rf.data.session) return;
+        await client.auth.signOut({ scope: "local" }).catch(() => {});
+        await client.auth.signInAnonymously();
       } catch (e) {}
     };
     function collection(table) {
