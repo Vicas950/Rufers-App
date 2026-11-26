@@ -383,7 +383,7 @@
         <div id="fbList"></div>
       </div>
 
-      <div class="ver">Версия 1.0.2</div>
+      <div class="ver">Версия 1.0.3</div>
     </section>
   </div>
 
@@ -1200,8 +1200,12 @@
 
   // ---------- журнал: каждое действие в приложении ----------
   function logAct(text) {
-    if (!db) return;
-    try { db.collection("log").add({ text, who: myName(), at: Date.now() }).catch(function () {}); } catch (e) {}
+    if (!db) { toast("Журнал: база не подключена"); return; }
+    try {
+      db.collection("log").add({ text, who: myName(), at: Date.now() }).catch(function (err) {
+        toast("Журнал: " + (err.message || err.code || "ошибка записи"));
+      });
+    } catch (e) { toast("Журнал: " + (e.message || "ошибка")); }
   }
 
   // ---------- Supabase: тот же интерфейс, что у Firestore ----------
