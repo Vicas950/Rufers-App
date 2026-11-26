@@ -383,7 +383,7 @@
         <div id="fbList"></div>
       </div>
 
-      <div class="ver">Версия 1.0.5</div>
+      <div class="ver">Версия 1.0.6</div>
     </section>
   </div>
 
@@ -1199,11 +1199,12 @@
   }
 
   // ---------- журнал: каждое действие в приложении ----------
+  let authErr = "";
   function logAct(text) {
     if (!db) { toast("Журнал: база не подключена"); return; }
     try {
       db.collection("log").add({ text, who: myName(), at: Date.now() }).catch(function (err) {
-        toast("Журнал: " + (err.message || err.code || "ошибка записи"));
+        toast("Журнал: " + (err.message || err.code || "ошибка записи") + (authErr ? " | Вход: " + authErr : ""));
       });
     } catch (e) { toast("Журнал: " + (e.message || "ошибка")); }
   }
@@ -1217,12 +1218,16 @@
     const ready = async () => {
       try {
         const u = await client.auth.getUser();
-        if (!u.error && u.data.user) return;
+        if (!u.error && u.data.user) { authErr = ""; return; }
         const rf = await client.auth.refreshSession();
-        if (!rf.error && rf.data.session) return;
+        if (!rf.error && rf.data.session) { authErr = ""; return; }
         await client.auth.signOut({ scope: "local" }).catch(() => {});
-        await client.auth.signInAnonymously();
-      } catch (e) {}
+        const si = await client.auth.signInAnonymously();
+        if (si.error) throw si.error;
+        authErr = "";
+      } catch (e) {
+        authErr = (e && (e.message || e.code)) || "неизвестная ошибка входа";
+      }
     };
     function collection(table) {
       return {
