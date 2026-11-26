@@ -244,6 +244,8 @@
   }
   .plus:active { transform: scale(.88) rotate(45deg); }
   .plus.hide { opacity: 0; transform: scale(.6); pointer-events: none; }
+  #pBuilding.simple .full { display: none; }
+  #pRoof.nodate .dfield { display: none; }
 
   /* ---------- шторки ---------- */
   .overlay {
@@ -381,7 +383,7 @@
         <div id="fbList"></div>
       </div>
 
-      <div class="ver">Версия 1.0.1</div>
+      <div class="ver">Версия 1.0.2</div>
     </section>
   </div>
 
@@ -773,7 +775,10 @@
   }
 
   function renderFeedback() {
-    const list = feedback.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const list = feedback
+      .filter(f => isAdmin() || f.authorId === myId)
+      .slice()
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     if (!list.length) {
       $("fbList").innerHTML = '<div class="hint">Сообщений пока нет</div>';
       return;
