@@ -383,7 +383,7 @@
         <div id="fbList"></div>
       </div>
 
-      <div class="ver">Версия 1.0.7</div>
+      <div class="ver">Версия 1.0.8</div>
     </section>
   </div>
 
@@ -1220,7 +1220,12 @@
   let sbClient = null;
   function makeSupabaseDb(client) {
     const loaders = {};
-    const reload = (table) => (loaders[table] || []).forEach(fn => fn());
+    // несколько изменений подряд — одна загрузка (не дёргаем экран на каждое изменение)
+    const timers = {};
+    const reload = (table) => {
+      clearTimeout(timers[table]);
+      timers[table] = setTimeout(() => (loaders[table] || []).forEach(fn => fn()), 150);
+    };
     // перед каждой записью убеждаемся, что вход есть; если нет — входим анонимно
     const ready = async () => {
       try {
@@ -1272,7 +1277,7 @@
           };
           (loaders[table] = loaders[table] || []).push(load);
           load();
-          client.channel("rt-" + table).on("postgres_changes", { event: "*", schema: "public", table: table }, load).subscribe();
+          client.channel("rt-" + table).on("postgres_changes", { event: "*", schema: "public", table: table }, () => reload(table)).subscribe();
           return () => {};
         }
       };
